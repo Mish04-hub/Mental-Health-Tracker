@@ -102,7 +102,7 @@ pipeline {
                     sh '''
                     npx sonar-scanner \
                     -Dsonar.projectKey=Mish04-hub_Mental-Health-Tracker \
-                    -Dsonar.organization=Mish04-hub \
+                    -Dsonar.organization=mish04-hub \
                     -Dsonar.sources=backend,frontend \
                     -Dsonar.host.url=https://sonarcloud.io \
                     -Dsonar.login=${SONAR_AUTH_TOKEN}

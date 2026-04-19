@@ -31,7 +31,7 @@ pipeline {
                 stage('Frontend Dependencies') {
                     steps {
                         dir('frontend') {
-                            sh 'npm install || true'
+                            sh 'npm install'
                             echo '✅ Frontend dependencies installed'
                         }
                     }

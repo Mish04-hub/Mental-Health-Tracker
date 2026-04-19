@@ -1,0 +1,32 @@
+# ─────────────────────────────────────────────────────────────
+# Student Mental Health Tracker – Backend Dockerfile
+# ─────────────────────────────────────────────────────────────
+# Build: docker build -f docker/Dockerfile.backend -t mht-backend .
+# Run:   docker run -p 5000:5000 --env-file backend/.env mht-backend
+# ─────────────────────────────────────────────────────────────
+
+FROM node:20-alpine AS base
+
+WORKDIR /app
+
+# Copy package files first for layer caching
+COPY backend/package*.json ./
+
+# Install production dependencies only
+RUN npm ci --omit=dev
+
+# Copy rest of backend source
+COPY backend/ .
+
+# Create non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+EXPOSE 5000
+
+ENV NODE_ENV=production
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:5000/health || exit 1
+
+CMD ["node", "app.js"]

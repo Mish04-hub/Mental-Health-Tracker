@@ -95,13 +95,12 @@ pipeline {
                 echo "✅ Deployment complete — backend live on :5000"
             }
         }
+
         stage('🔍 Code Quality Analysis') {
             steps {
                 withSonarQubeEnv('SonarCloud') {
                     sh '''
-                    npm install -g sonar-scanner
-
-                    sonar-scanner \
+                    npx sonar-scanner \
                     -Dsonar.projectKey=Mish04-hub_Mental-Health-Tracker \
                     -Dsonar.organization=Mish04-hub \
                     -Dsonar.sources=backend,frontned \

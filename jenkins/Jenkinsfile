@@ -95,24 +95,24 @@ pipeline {
                 echo "✅ Deployment complete — backend live on :5000"
             }
         }
-    }
-
         stage('🔍 Code Quality Analysis') {
             steps {
-                withSonarQubeEnv('SonarCloud') {
-                sh '''
-                npm install -g sonar-scanner
+                withSonarQube`Env('SonarQube') {
+                    sh '''
+                    npm install -g sonar-scanner
 
-                sonar-scanner \
-                -Dsonar.projectKey=Mish04-hub_Mental-Health-Tracker \
-                -Dsonar.organization=mish04-hub\
-                -Dsonar.sources=backend,frontend \
-                -Dsonar.host.url=https://sonarcloud.io \
-                -Dsonar.login=$SONAR_AUTH_TOKEN
-                '''
+                    sonar-scanner \
+                        -Dsonar.projectKey=Mish04-hub_Mental-Health-Tracker \
+                        -Dsonar.organization=Mish04-hub \
+                        -Dsonar.sources=backend,frontned \
+                        -Dsonar.host.url=https://sonarcloud.io \
+                        -Dsonar.login=${SONAR_AUTH_TOKEN}
+                    '''
                 }
             }
+        }
     }
+}
 
     post {
         always {

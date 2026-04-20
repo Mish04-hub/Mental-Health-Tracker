@@ -18,7 +18,6 @@ pipeline {
 
         stage('Install Dependencies') {
             parallel {
-
                 stage('Backend Dependencies') {
                     steps {
                         dir('backend') {
@@ -29,7 +28,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Frontend Dependencies') {
                     steps {
                         dir('frontend') {
@@ -37,6 +35,20 @@ pipeline {
                             echo 'Frontend dependencies installed'
                         }
                     }
+                }
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                dir('backend') {
+                    sh 'npm test'
+                    echo 'Tests passed'
+                }
+            }
+            post {
+                failure {
+                    echo 'Tests failed – aborting pipeline'
                 }
             }
         }
@@ -58,19 +70,23 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
+        stage('Deploy') {
             steps {
-                dir('backend') {
-                    sh 'npm test'
-                    echo 'Tests passed'
+                echo "Deploying backend..."
+
+                sh '''
+                docker stop mht-backend-running || true
+                docker rm mht-backend-running || true
+                docker run -d \
+                --name mht-backend-running \
+                --restart unless-stopped \
+                -p 5001:5000 \
+                mht-backend:latest
+                '''
+
+                echo "Backend deployed on port 5001"
                 }
             }
-            post {
-                failure {
-                    echo 'Tests failed – aborting pipeline'
-                }
-            }
-        }
 
         stage('Code Quality Analysis') {
             steps {
@@ -86,56 +102,15 @@ pipeline {
                 }
             }
         }
-
-        stage('Security Scan') {
-            steps {
-                sh 'npm audit || true'
-                echo 'Security scan completed'
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo "Deploying backend..."
-
-                sh '''
-                docker stop mht-backend-running || true
-                docker rm mht-backend-running || true
-
-                docker run -d \
-                --name mht-backend-running \
-                --restart unless-stopped \
-                -p 5001:5000 \
-                -e MONGO_URI=mongodb://mishti_user:<Mishti15>@ac-gmezsub-shard-00-00.cefdvs7.mongodb.net:27017,ac-gmezsub-shard-00-01.cefdvs7.mongodb.net:27017,ac-gmezsub-shard-00-02.cefdvs7.mongodb.net:27017/?ssl=true&replicaSet=atlas-12laqx-shard-0&authSource=admin&appName=Cluster0 \
-                mht-backend:latest
-                '''
-
-                echo "Backend deployed on port 5001"
-            }
-        }
-
-        stage('Release') {
-            steps {
-                echo "Application promoted to production"
-            }
-        }
-
-        stage('Monitoring') {
-            steps {
-                echo "Monitoring enabled using tools like Datadog/New Relic (simulated)"
-            }
-        }
     }
 
     post {
         always {
             cleanWs()
         }
-
         success {
             echo "Pipeline succeeded for build #${BUILD_NUMBER}"
         }
-
         failure {
             echo "Pipeline FAILED for build #${BUILD_NUMBER}. Check logs above."
         }

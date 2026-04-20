@@ -64,8 +64,8 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -f docker/Dockerfile.backend -t mht-backend:latest.'
-                sh 'docker build -f docker/Dockerfile.frontend -t mht-frontend:latest.'
+                sh 'docker build -f docker/Dockerfile.backend -t mht-backend:latest .'
+                sh 'docker build -f docker/Dockerfile.frontend -t mht-frontend:latest .'
                 echo "Docker image built: ${DOCKER_IMAGE}"
             }
         }

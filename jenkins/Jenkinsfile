@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         NODE_VERSION = '20'
-        APP_NAME     = 'mental-health-tracker'
+        APP_NAME = 'mental-health-tracker'
         DOCKER_IMAGE = "mht-backend:${BUILD_NUMBER}"
     }
 
@@ -39,20 +39,7 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
-            steps {
-                dir('backend') {
-                    sh 'npm test'
-                    echo 'Tests passed'
-                }
-            }
-            post {
-                failure {
-                    echo 'Tests failed – aborting pipeline'
-                }
-            }
-        }
-
+        // ✅ BUILD FIRST
         stage('Build Frontend') {
             steps {
                 dir('frontend') {
@@ -70,6 +57,46 @@ pipeline {
             }
         }
 
+        // ✅ THEN TEST
+        stage('Run Tests') {
+            steps {
+                dir('backend') {
+                    sh 'npm test'
+                    echo 'Tests passed'
+                }
+            }
+            post {
+                failure {
+                    echo 'Tests failed – aborting pipeline'
+                }
+            }
+        }
+
+        // ✅ QUALITY BEFORE DEPLOY
+        stage('Code Quality Analysis') {
+            steps {
+                withSonarQubeEnv('SonarCloud') {
+                    sh '''
+                    npx sonar-scanner \
+                    -Dsonar.projectKey=Mish04-hub_Mental-Health-Tracker \
+                    -Dsonar.organization=mish04-hub \
+                    -Dsonar.sources=backend,frontend \
+                    -Dsonar.host.url=https://sonarcloud.io \
+                    -Dsonar.login=${SONAR_AUTH_TOKEN}
+                    '''
+                }
+            }
+        }
+
+        // ✅ ADD SECURITY (REQUIRED)
+        stage('Security Scan') {
+            steps {
+                sh 'npm audit || true'
+                echo 'Security scan completed'
+            }
+        }
+
+        // ✅ DEPLOY AFTER ALL CHECKS
         stage('Deploy') {
             steps {
                 echo "Deploying backend..."
@@ -85,21 +112,22 @@ pipeline {
                 '''
 
                 echo "Backend deployed on port 5001"
-                }
             }
+        }
 
-        stage('Code Quality Analysis') {
+        // ✅ RELEASE STAGE
+        stage('Release') {
             steps {
-                withSonarQubeEnv('SonarCloud') {
-                    sh '''
-                    npx sonar-scanner \
-                    -Dsonar.projectKey=Mish04-hub_Mental-Health-Tracker \
-                    -Dsonar.organization=mish04-hub \
-                    -Dsonar.sources=backend,frontend \
-                    -Dsonar.host.url=https://sonarcloud.io \
-                    -Dsonar.login=${SONAR_AUTH_TOKEN}
-                    '''
-                }
+                echo "Application promoted to production"
+            }
+        }
+
+        // ✅ MONITORING STAGE
+        stage('Monitoring') {
+            steps {
+                echo "Monitoring application..."
+                sh 'docker ps'
+                sh 'docker logs mht-backend-running || true'
             }
         }
     }

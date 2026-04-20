@@ -9,14 +9,14 @@ pipeline {
 
     stages {
 
-        stage('🔍 Checkout') {
+        stage('Checkout') {
             steps {
                 checkout scm
-                echo "✅ Code checked out on branch: ${env.GIT_BRANCH}"
+                echo "Code checked out on branch: ${env.GIT_BRANCH}"
             }
         }
 
-        stage('📦 Install Dependencies') {
+        stage('Install Dependencies') {
             parallel {
                 stage('Backend Dependencies') {
                     steps {
@@ -24,7 +24,7 @@ pipeline {
                             sh 'node --version'
                             sh 'npm --version'
                             sh 'npm install'
-                            echo '✅ Backend dependencies installed'
+                            echo 'Backend dependencies installed'
                         }
                     }
                 }
@@ -32,71 +32,64 @@ pipeline {
                     steps {
                         dir('frontend') {
                             sh 'npm install'
-                            echo '✅ Frontend dependencies installed'
+                            echo 'Frontend dependencies installed'
                         }
                     }
                 }
             }
         }
 
-        stage('🧪 Run Tests') {
+        stage('Run Tests') {
             steps {
                 dir('backend') {
                     sh 'npm test'
-                    echo '✅ Tests passed'
+                    echo 'Tests passed'
                 }
             }
             post {
                 failure {
-                    echo '❌ Tests failed – aborting pipeline'
+                    echo 'Tests failed – aborting pipeline'
                 }
             }
         }
 
-        stage('🏗️ Build Frontend') {
+        stage('Build Frontend') {
             steps {
                 dir('frontend') {
                     sh 'npx vite build || true'
-                    echo '✅ Frontend built successfully'
+                    echo 'Frontend built successfully'
                 }
             }
         }
 
-        stage('🐳 Build Docker Image') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
-                }
-            }
+        stage('Build Docker Image') {
             steps {
-                sh "docker build -f docker/Dockerfile.backend -t ${DOCKER_IMAGE} ."
-                sh "docker tag ${DOCKER_IMAGE} mht-backend:latest"
-                echo "✅ Docker image built: ${DOCKER_IMAGE}"
+                sh 'docker build -f docker/Dockerfile.backend -t mht-backend:latest.'
+                sh 'docker build -f docker/Dockerfile.frontend -t mht-frontend:latest.'
+                echo "Docker image built: ${DOCKER_IMAGE}"
             }
         }
 
-        stage('🚀 Deploy') {
-            when {
-                branch 'main'
-            }
+        stage('Deploy') {
             steps {
-                echo "🔄 Deploying ${DOCKER_IMAGE}..."
+                echo "Deploying backend..."
+
                 sh '''
-                    docker stop mht-backend-running || true
-                    docker rm   mht-backend-running || true
-                    docker run -d \
-                        --name mht-backend-running \
-                        --restart unless-stopped \
-                        -p 5000:5000 \
-                        --env-file backend/.env \
-                        mht-backend:latest
+                docker stop mht-backend-running || true
+                docker rm mht-backend-running || true
+                docker run -d \
+                --name mht-backend-running \
+                --restart unless-stopped \
+                -p 5000:5000 \
+                --env-file backend/.env \
+                mht-backend:latest
                 '''
-                echo "✅ Deployment complete — backend live on :5000"
-            }
-        }
 
-        stage('🔍 Code Quality Analysis') {
+                echo "Backend deployed on port 5000"
+                }
+            }
+
+        stage('Code Quality Analysis') {
             steps {
                 withSonarQubeEnv('SonarCloud') {
                     sh '''
@@ -117,10 +110,10 @@ pipeline {
             cleanWs()
         }
         success {
-            echo "🎉 Pipeline succeeded for build #${BUILD_NUMBER}"
+            echo "Pipeline succeeded for build #${BUILD_NUMBER}"
         }
         failure {
-            echo "💥 Pipeline FAILED for build #${BUILD_NUMBER}. Check logs above."
+            echo "Pipeline FAILED for build #${BUILD_NUMBER}. Check logs above."
         }
     }
 }

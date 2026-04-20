@@ -89,12 +89,14 @@ pipeline {
         }
 
         // ✅ ADD SECURITY (REQUIRED)
-        stage('Security Scan') {
+        stage('Security Scan (Trivy)') {
             steps {
-                sh 'npm audit || true'
-                echo 'Security scan completed'
-            }
-        }
+            sh '''
+            trivy image mht-backend:latest || true
+            '''
+            echo "Security scan completed using Trivy"
+    }
+}
 
         // ✅ DEPLOY AFTER ALL CHECKS
         stage('Deploy') {

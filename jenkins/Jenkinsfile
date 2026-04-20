@@ -81,7 +81,6 @@ pipeline {
                 --name mht-backend-running \
                 --restart unless-stopped \
                 -p 5000:5000 \
-                --env-file backend/.env \
                 mht-backend:latest
                 '''
 

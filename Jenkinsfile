@@ -28,13 +28,14 @@ pipeline {
                 }
             }
         }
+    }
 
     post {
         success {
-            echo 'Build and Test stages completed successfully'
+            echo 'Build stage completed successfully'
         }
         failure {
-            echo 'Pipeline failed'
+            echo 'Build stage failed'
         }
     }
 }

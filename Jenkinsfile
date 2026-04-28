@@ -1,55 +1,57 @@
 pipeline {
     agent any
 
+    environment {
+        SONARQUBE_ENV = 'SonarQube'
+        PROJECT_KEY = 'mental-health-tracker'
+        PROJECT_NAME = 'Mental Health Tracker'
+    }
+
     stages {
 
-        stage('1. Checkout Source Code') {
+        stage('Checkout') {
             steps {
-                echo 'Cloning repository from GitHub'
                 checkout scm
             }
         }
 
-        stage('2. Install Backend Dependencies') {
+        stage('Backend Install') {
             steps {
-                echo 'Installing backend dependencies'
                 dir('backend') {
                     sh 'npm install'
                 }
             }
         }
 
-        stage('3. Build Frontend Application') {
+        stage('Frontend Build') {
             steps {
-                echo 'Building frontend application'
                 dir('frontend') {
                     sh 'npm install'
-                    sh 'npm run build || true'
+                    sh 'npm run build'
                 }
             }
         }
 
-        stage('4. Run Backend Tests (Jest)') {
+        stage('Test (Jest)') {
             steps {
-                echo 'Running backend unit tests'
                 dir('backend') {
-                    sh 'npm test'
+                    sh 'NODE_ENV=test npm test'
                 }
             }
         }
 
-        stage('5. SonarQube Analysis') {
+        stage('SonarQube Analysis') {
             steps {
-                echo 'Running SonarQube analysis for code quality'
-
-                withSonarQubeEnv('SonarQube') {
+                withSonarQubeEnv("${SONARQUBE_ENV}") {
                     dir('backend') {
                         sh '''
                         npx sonar-scanner \
-                          -Dsonar.projectKey=mental-health \
-                          -Dsonar.sources=. \
-                          -Dsonar.host.url=http://sonarqube:9000 \
-                          -Dsonar.login=$SONAR_AUTH_TOKEN
+                        -Dsonar.projectKey=${PROJECT_KEY} \
+                        -Dsonar.projectName="${PROJECT_NAME}" \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=http://host.docker.internal:9000 \
+                        -Dsonar.login=$SONAR_AUTH_TOKEN \
+                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
                         '''
                     }
                 }
@@ -59,7 +61,7 @@ pipeline {
 
     post {
         success {
-            echo 'Build, Test, and SonarQube analysis completed successfully'
+            echo 'Pipeline completed successfully'
         }
         failure {
             echo 'Pipeline failed'

@@ -12,7 +12,7 @@ pipeline {
 
         stage('2. Install Backend Dependencies') {
             steps {
-                echo 'Installing backend dependencies using npm'
+                echo 'Installing backend dependencies'
                 dir('backend') {
                     sh 'npm install'
                 }
@@ -21,7 +21,7 @@ pipeline {
 
         stage('3. Build Frontend Application') {
             steps {
-                echo 'Installing frontend dependencies and building application'
+                echo 'Building frontend application'
                 dir('frontend') {
                     sh 'npm install'
                     sh 'npm run build || true'
@@ -31,9 +31,27 @@ pipeline {
 
         stage('4. Run Backend Tests (Jest)') {
             steps {
-                echo 'Running backend unit tests using Jest'
+                echo 'Running backend unit tests'
                 dir('backend') {
-                    sh 'npm test || true'
+                    sh 'npm test'
+                }
+            }
+        }
+
+        stage('5. SonarQube Analysis') {
+            steps {
+                echo 'Running SonarQube analysis for code quality'
+
+                withSonarQubeEnv('SonarQube') {
+                    dir('backend') {
+                        sh '''
+                        npx sonar-scanner \
+                          -Dsonar.projectKey=mental-health \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=http://sonarqube:9000 \
+                          -Dsonar.login=$SONAR_AUTH_TOKEN
+                        '''
+                    }
                 }
             }
         }
@@ -41,7 +59,7 @@ pipeline {
 
     post {
         success {
-            echo 'Build and Test stages completed successfully'
+            echo 'Build, Test, and SonarQube analysis completed successfully'
         }
         failure {
             echo 'Pipeline failed'

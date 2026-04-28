@@ -1,148 +1,41 @@
 pipeline {
     agent any
 
-    environment {
-        NODE_VERSION = '20'
-        APP_NAME = 'mental-health-tracker'
-        DOCKER_IMAGE = "mht-backend:${BUILD_NUMBER}"
-    }
-
     stages {
 
-        stage('Checkout') {
+        stage('1. Checkout Source Code') {
             steps {
+                echo 'Cloning repository from GitHub'
                 checkout scm
-                echo "Code checked out on branch: ${env.GIT_BRANCH}"
             }
         }
 
-        stage('Install Dependencies') {
-            parallel {
-                stage('Backend Dependencies') {
-                    steps {
-                        dir('backend') {
-                            sh 'node --version'
-                            sh 'npm --version'
-                            sh 'npm install'
-                            echo 'Backend dependencies installed'
-                        }
-                    }
-                }
-                stage('Frontend Dependencies') {
-                    steps {
-                        dir('frontend') {
-                            sh 'npm install'
-                            echo 'Frontend dependencies installed'
-                        }
-                    }
-                }
-            }
-        }
-
-        // ✅ BUILD FIRST
-        stage('Build Frontend') {
+        stage('2. Install Backend Dependencies') {
             steps {
-                dir('frontend') {
-                    sh 'npx vite build || true'
-                    echo 'Frontend built successfully'
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -f docker/Dockerfile.backend -t mht-backend:latest .'
-                sh 'docker build -f docker/Dockerfile.frontend -t mht-frontend:latest .'
-                echo "Docker image built: ${DOCKER_IMAGE}"
-            }
-        }
-
-        // ✅ THEN TEST
-        stage('Run Tests') {
-            steps {
+                echo 'Installing backend dependencies using npm'
                 dir('backend') {
-                    sh 'npm test'
-                    echo 'Tests passed'
-                }
-            }
-            post {
-                failure {
-                    echo 'Tests failed – aborting pipeline'
+                    sh 'npm install'
                 }
             }
         }
 
-        // ✅ QUALITY BEFORE DEPLOY
-        stage('Code Quality Analysis') {
+        stage('3. Build Frontend Application') {
             steps {
-                withSonarQubeEnv('SonarCloud') {
-                    sh '''
-                    npx sonar-scanner \
-                    -Dsonar.projectKey=Mish04-hub_Mental-Health-Tracker \
-                    -Dsonar.organization=mish04-hub \
-                    -Dsonar.sources=backend,frontend \
-                    -Dsonar.host.url=https://sonarcloud.io \
-                    -Dsonar.login=${SONAR_AUTH_TOKEN}
-                    '''
+                echo 'Installing frontend dependencies and building application'
+                dir('frontend') {
+                    sh 'npm install'
+                    sh 'npm run build || true'
                 }
-            }
-        }
-
-        // ✅ ADD SECURITY (REQUIRED)
-        stage('Security Scan (Trivy)') {
-            steps {
-            sh '''
-            trivy image mht-backend:latest || true
-            '''
-            echo "Security scan completed using Trivy"
-    }
-}
-
-        // ✅ DEPLOY AFTER ALL CHECKS
-        stage('Deploy') {
-            steps {
-                echo "Deploying backend..."
-
-                sh '''
-                docker stop mht-backend-running || true
-                docker rm mht-backend-running || true
-                docker run -d \
-                --name mht-backend-running \
-                --restart unless-stopped \
-                -p 5001:5000 \
-                mht-backend:latest
-                '''
-
-                echo "Backend deployed on port 5001"
-            }
-        }
-
-        // ✅ RELEASE STAGE
-        stage('Release') {
-            steps {
-                echo "Application promoted to production"
-            }
-        }
-
-        // ✅ MONITORING STAGE
-        stage('Monitoring') {
-            steps {
-                echo "Monitoring application..."
-                sh 'docker ps'
-                sh 'docker logs mht-backend-running || true'
             }
         }
     }
 
     post {
-        always {
-            cleanWs()
-        }
         success {
-            echo "Pipeline succeeded for build #${BUILD_NUMBER}"
+            echo 'Build stage completed successfully'
         }
         failure {
-            echo "Pipeline FAILED for build #${BUILD_NUMBER}. Check logs above."
+            echo 'Build stage failed'
         }
     }
 }

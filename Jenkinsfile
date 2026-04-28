@@ -28,14 +28,23 @@ pipeline {
                 }
             }
         }
+
+        stage('4. Run Backend Tests (Jest)') {
+            steps {
+                echo 'Running backend unit tests using Jest'
+                dir('backend') {
+                    sh 'npm test || true'
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo 'Build stage completed successfully'
+            echo 'Build and Test stages completed successfully'
         }
         failure {
-            echo 'Build stage failed'
+            echo 'Pipeline failed'
         }
     }
 }

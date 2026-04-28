@@ -1,15 +1,12 @@
-FROM node:18 as build
+FROM node:18
 
 WORKDIR /app
 
-COPY frontend/package*.json ./
+COPY backend/package*.json ./
 RUN npm install
 
-COPY frontend .
-RUN npm run build
+COPY backend .
 
-FROM nginx:alpine
+EXPOSE 5000
 
-COPY --from=build /app/dist /usr/share/nginx/html
-
-EXPOSE 80
+CMD ["node", "app.js"]

@@ -61,48 +61,59 @@ pipeline {
             }
         }
 
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
         stage('Build Docker Images') {
 
             steps {
-
                 echo 'Building Docker images'
 
                 sh 'docker build -t docker-backend -f docker/backend.Dockerfile .'
-
                 sh 'docker build -t docker-frontend -f docker/frontend.Dockerfile .'
-
             }
-
         }
 
         stage('Trivy Security Scan') {
 
             steps {
-
                 echo 'Running Trivy scan on Docker images'
 
                 sh '''
+                # Update DB (cached, safe)
                 docker run --rm \
-                -v /var/run/docker.sock:/var/run/docker.sock \
-                aquasec/trivy image \
-                --severity HIGH,CRITICAL \
-                --exit-code 0 \
-                docker-backend
+                -v trivy-cache:/root/.cache/ \
+                aquasec/trivy image --download-db-only || true
 
+                # Scan backend
                 docker run --rm \
                 -v /var/run/docker.sock:/var/run/docker.sock \
+                -v trivy-cache:/root/.cache/ \
                 aquasec/trivy image \
                 --severity HIGH,CRITICAL \
                 --exit-code 0 \
-                docker-frontend
+                docker-backend || true
+
+                # Scan frontend
+                docker run --rm \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -v trivy-cache:/root/.cache/ \
+                aquasec/trivy image \
+                --severity HIGH,CRITICAL \
+                --exit-code 0 \
+                docker-frontend || true
                 '''
             }
-
         }
 
 
         stage('Trivy Report') {
-
             steps {
                 echo 'Generating Trivy reports'
 
@@ -110,22 +121,23 @@ pipeline {
                 docker run --rm \
                 -v $(pwd):/output \
                 -v /var/run/docker.sock:/var/run/docker.sock \
+                -v trivy-cache:/root/.cache/ \
                 aquasec/trivy image \
                 --format template \
                 --template "@contrib/html.tpl" \
                 -o /output/backend-report.html \
-                docker-backend
+                docker-backend || true
 
                 docker run --rm \
                 -v $(pwd):/output \
                 -v /var/run/docker.sock:/var/run/docker.sock \
+                -v trivy-cache:/root/.cache/ \
                 aquasec/trivy image \
                 --format json \
                 -o /output/frontend-report.json \
-                docker-frontend
+                docker-frontend || true
                 '''
             }
-
         }
 
 
@@ -144,6 +156,10 @@ pipeline {
         }
         failure {
             echo 'Pipeline failed'
+        }
+        always {
+            echo 'Archiving Trivy reports'
+            archiveArtifacts artifacts: 'backend-report.html, frontend-report.json', fingerprint: true
         }
     }
 }

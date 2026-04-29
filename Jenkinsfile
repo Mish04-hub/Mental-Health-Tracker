@@ -82,13 +82,20 @@ pipeline {
                 echo 'Running Trivy scan on Docker images'
 
                 sh '''
+                docker run --rm \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                aquasec/trivy image \
+                --severity HIGH,CRITICAL \
+                --exit-code 1 \
+                docker-backend
 
-                trivy image --severity HIGH,CRITICAL --exit-code 1 docker-backend
-
-                trivy image --severity HIGH,CRITICAL --exit-code 1 docker-frontend
-
+                docker run --rm \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                aquasec/trivy image \
+                --severity HIGH,CRITICAL \
+                --exit-code 1 \
+                docker-frontend
                 '''
-
             }
 
         }
@@ -97,15 +104,26 @@ pipeline {
         stage('Trivy Report') {
 
             steps {
+                echo 'Generating Trivy reports'
 
                 sh '''
+                docker run --rm \
+                -v $(pwd):/output \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                aquasec/trivy image \
+                --format template \
+                --template "@contrib/html.tpl" \
+                -o /output/backend-report.html \
+                docker-backend
 
-                trivy image -f json -o trivy-backend.json docker-backend
-
-                trivy image -f json -o trivy-frontend.json docker-frontend
-
+                docker run --rm \
+                -v $(pwd):/output \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                aquasec/trivy image \
+                --format json \
+                -o /output/frontend-report.json \
+                docker-frontend
                 '''
-
             }
 
         }

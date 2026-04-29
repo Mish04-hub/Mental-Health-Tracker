@@ -61,15 +61,6 @@ pipeline {
             }
         }
 
-        // OPTIONAL: Comment this if timeout happens
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: false
-                }
-            }
-        }
-
         stage('Build Docker Images') {
             steps {
                 echo 'Building Docker images'

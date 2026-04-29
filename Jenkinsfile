@@ -61,6 +61,56 @@ pipeline {
             }
         }
 
+        stage('Build Docker Images') {
+
+            steps {
+
+                echo 'Building Docker images'
+
+                sh 'docker build -t docker-backend ./backend'
+
+                sh 'docker build -t docker-frontend ./frontend'
+
+            }
+
+        }
+
+        stage('Trivy Security Scan') {
+
+            steps {
+
+                echo 'Running Trivy scan on Docker images'
+
+                sh '''
+
+                trivy image --severity HIGH,CRITICAL --exit-code 1 docker-backend
+
+                trivy image --severity HIGH,CRITICAL --exit-code 1 docker-frontend
+
+                '''
+
+            }
+
+        }
+
+
+        stage('Trivy Report') {
+
+            steps {
+
+                sh '''
+
+                trivy image -f json -o trivy-backend.json docker-backend
+
+                trivy image -f json -o trivy-frontend.json docker-frontend
+
+                '''
+
+            }
+
+        }
+
+
         stage('Docker Deploy') {
             steps {
                 echo 'Deploying using Docker Compose'

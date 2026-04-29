@@ -67,9 +67,9 @@ pipeline {
 
                 echo 'Building Docker images'
 
-                sh 'docker build -t docker-backend -f docker/backend/Dockerfile .'
+                sh 'docker build -t docker-backend -f docker/backend.Dockerfile .'
 
-                sh 'docker build -t docker-frontend -f docker/frontend/Dockerfile .'
+                sh 'docker build -t docker-frontend -f docker/frontend.Dockerfile .'
 
             }
 

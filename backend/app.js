@@ -17,6 +17,21 @@ app.use(cors({
 
 app.use(express.json());
 
+const client = require('prom-client');
+
+// collect default metrics (global registry)
+client.collectDefaultMetrics();
+
+app.get('/metrics', (req, res) => {
+  try {
+    res.set('Content-Type', client.register.contentType);
+    res.send(client.register.metrics());   // ✅ NOT await
+  } catch (err) {
+    console.error('Metrics error:', err);
+    res.status(500).send(err.message);
+  }
+});
+
 // ── Routes ──────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/mood', moodRoutes);

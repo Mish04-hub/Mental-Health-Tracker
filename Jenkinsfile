@@ -137,6 +137,31 @@ pipeline {
                 '''
             }
         }
+
+        stage('Release') {
+            steps {
+                echo 'Pushing images to Docker Hub'
+
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-hub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+
+                )]) {
+
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+
+                    docker tag docker-backend $DOCKER_USER/mental-backend:latest
+                    docker tag docker-frontend $DOCKER_USER/mental-frontend:latest
+
+                    docker push $DOCKER_USER/mental-backend:latest
+                    docker push $DOCKER_USER/mental-frontend:latest
+                    '''
+
+                }
+            }
+        }
     }
 
     post {

@@ -18,7 +18,7 @@ pipeline {
             steps {
                 echo 'Installing backend dependencies'
                 dir('backend') {
-                    sh 'docker run --rm -v $PWD:/app -w /app node:18 npm install'
+                    sh 'npm install'
                 }
             }
         }
@@ -27,8 +27,8 @@ pipeline {
             steps {
                 echo 'Building frontend'
                 dir('frontend') {
-                    sh 'docker run --rm -v $PWD:/app -w /app node:18 npm install'
-                    sh 'docker run --rm -v $PWD:/app -w /app node:18 npm run build'
+                    sh 'npm install'
+                    sh 'npm run build'
                 }
             }
         }
@@ -37,7 +37,7 @@ pipeline {
             steps {
                 echo 'Running tests with coverage'
                 dir('backend') {
-                    sh 'docker run --rm -v $PWD:/app -w /app node:18 sh -c "NODE_ENV=test npm test"'
+                    sh 'NODE_ENV=test npm test'
                 }
             }
         }
@@ -48,18 +48,13 @@ pipeline {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
                     dir('backend') {
                         sh '''
-                        docker run --rm \
-                        -v $PWD:/app \
-                        -w /app \
-                        node:18 sh -c "
                         npx sonar-scanner \
                         -Dsonar.projectKey=mental-health \
-                        -Dsonar.projectName='Mental-Health-Tracker' \
+                        -Dsonar.projectName="Mental Health Tracker" \
                         -Dsonar.sources=. \
                         -Dsonar.host.url=http://host.docker.internal:9000 \
                         -Dsonar.login=$SONAR_AUTH_TOKEN \
                         -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-                        "
                         '''
                     }
                 }
@@ -82,7 +77,9 @@ pipeline {
 
                 sh 'docker build -t docker-backend -f docker/backend.Dockerfile .'
                 sh 'docker build -t docker-frontend -f docker/frontend.Dockerfile .'
+
             }
+
         }
 
         stage('Trivy Security Scan') {

@@ -37,7 +37,7 @@ pipeline {
             steps {
                 echo 'Running tests with coverage'
                 dir('backend') {
-                    sh 'docker run --rm -v $PWD:/app -w /app node:18 sh -c "NODE_ENV=test npm test"'
+                    sh 'NODE_ENV=test npm test'
                 }
             }
         }
@@ -48,24 +48,20 @@ pipeline {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
                     dir('backend') {
                         sh '''
-                        docker run --rm \
-                        -v $PWD:/app \
-                        -w /app \
-                        node:18 sh -c "
                         npx sonar-scanner \
                         -Dsonar.projectKey=mental-health \
-                        -Dsonar.projectName='Mental Health Tracker' \
+                        -Dsonar.projectName="Mental Health Tracker" \
                         -Dsonar.sources=. \
                         -Dsonar.host.url=http://host.docker.internal:9000 \
                         -Dsonar.login=$SONAR_AUTH_TOKEN \
                         -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-                        "
                         '''
                     }
                 }
             }
         }
 
+        // OPTIONAL: Comment this if timeout happens
         stage('Quality Gate') {
             steps {
                 timeout(time: 10, unit: 'MINUTES') {
@@ -84,7 +80,8 @@ pipeline {
 
         stage('Trivy Security Scan') {
             steps {
-                echo 'Running Trivy scan on Docker images'
+                echo 'Running Trivy scan'
+
                 sh '''
                 docker run --rm \
                 -v trivy-cache:/root/.cache/ \
@@ -111,7 +108,8 @@ pipeline {
 
         stage('Trivy Report') {
             steps {
-                echo 'Generating Trivy reports'
+                echo 'Generating reports'
+
                 sh '''
                 docker run --rm \
                 -v $(pwd):/output \
@@ -137,7 +135,7 @@ pipeline {
 
         stage('Docker Deploy') {
             steps {
-                echo 'Deploying using Docker Compose'
+                echo 'Deploying app'
                 sh 'docker compose -f docker/docker-compose.yml down || true'
                 sh 'docker compose -f docker/docker-compose.yml up -d --build'
             }
@@ -152,7 +150,7 @@ pipeline {
             echo 'Pipeline failed'
         }
         always {
-            echo 'Archiving Trivy reports'
+            echo 'Archiving reports'
             archiveArtifacts artifacts: 'backend-report.html, frontend-report.json', fingerprint: true
         }
     }

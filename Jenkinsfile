@@ -126,24 +126,14 @@ pipeline {
 
         stage('Docker Deploy') {
             steps {
-                echo 'Deploying application using Docker containers'
+                echo 'Deploying application'
 
                 sh '''
-                # Stop and remove old containers (if exist)
                 docker rm -f backend-container || true
                 docker rm -f frontend-container || true
 
-                # Run backend container
-                docker run -d \
-                --name backend-container \
-                -p 5000:5000 \
-                docker-backend
-
-                # Run frontend container
-                docker run -d \
-                --name frontend-container \
-                -p 3000:80 \
-                docker-frontend
+                docker run -d --name backend-container -p 5001:5000 docker-backend
+                docker run -d --name frontend-container -p 3001:80 docker-frontend
                 '''
             }
         }

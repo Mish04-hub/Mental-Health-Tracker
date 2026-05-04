@@ -61,6 +61,26 @@ pipeline {
             }
         }
 
+        stage('Docker Login') {
+
+            steps {
+                echo 'Logging into Docker Hub'
+
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-hub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+
+                )]) {
+
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    '''
+                }
+            }
+        }
+
+
         stage('Build Docker Images') {
             steps {
                 echo 'Building Docker images'
@@ -150,15 +170,23 @@ pipeline {
                 )]) {
 
                     sh '''
+                    VERSION=${BUILD_NUMBER}
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
 
                     docker tag docker-backend $DOCKER_USER/mental-backend:latest
+                    docker tag docker-backend $DOCKER_USER/mental-backend:$VERSION
+
                     docker tag docker-frontend $DOCKER_USER/mental-frontend:latest
+                    docker tag docker-frontend $DOCKER_USER/mental-frontend:$VERSION
 
                     docker push $DOCKER_USER/mental-backend:latest
-                    docker push $DOCKER_USER/mental-frontend:latest
-                    '''
+                    docker push $DOCKER_USER/mental-backend:$VERSION
 
+                    docker push $DOCKER_USER/mental-frontend:latest
+                    docker push $DOCKER_USER/mental-frontend:$VERSION
+
+                    docker logout
+                    '''
                 }
             }
         }
@@ -167,8 +195,8 @@ pipeline {
                 echo 'Starting Prometheus & Grafana'
 
                 sh '''
-                docker-compose -f docker/monitoring-compose.yml down || true
-                docker-compose -f docker/monitoring-compose.yml up -d
+                docker compose -f docker/monitoring-compose.yml down || true
+                docker compose -f docker/monitoring-compose.yml up -d
                 '''
             }
         }

@@ -19,17 +19,13 @@ app.use(express.json());
 
 const client = require('prom-client');
 
-// collect default metrics (global registry)
+// collect default metrics (CPU, memory, etc.)
 client.collectDefaultMetrics();
 
-app.get('/metrics', (req, res) => {
-  try {
-    res.set('Content-Type', client.register.contentType);
-    res.send(client.register.metrics());   // ✅ NOT await
-  } catch (err) {
-    console.error('Metrics error:', err);
-    res.status(500).send(err.message);
-  }
+// create /metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
 });
 
 // ── Routes ──────────────────────────────────────────────────────────────────

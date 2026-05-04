@@ -6,7 +6,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml   # ✅ FIXED
+      - ./docker:/etc/prometheus   # ✅ FIXED
     networks:
       - monitoring
 

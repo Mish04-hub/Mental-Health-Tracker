@@ -190,13 +190,14 @@ pipeline {
                 }
             }
         }
+
         stage('Monitoring Setup') {
             steps {
                 echo 'Starting Prometheus & Grafana'
 
                 sh '''
-                docker compose -f docker/monitoring-compose.yml down || true
-                docker compose -f docker/monitoring-compose.yml up -d
+                docker-compose -f docker/monitoring-compose.yml down || true
+                docker-compose -f docker/monitoring-compose.yml up -d
                 '''
             }
         }
